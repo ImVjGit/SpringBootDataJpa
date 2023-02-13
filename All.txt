@@ -1,0 +1,743 @@
+
+ 1 add database connfig in application.xml
+------------------------------------------------------------------------------------------------------------
+ 2create pkg entity 
+	create student class and applying few Validation 
+
+example
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name="tbl_Student",
+uniqueConstraints = @UniqueConstraint(
+        name="emailid_unique",
+        columnNames = "email_address"
+)
+)
+public class Student {
+    @Id
+    @SequenceGenerator(
+            name="Student_sequence",
+            sequenceName = "Studnet_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy =GenerationType.SEQUENCE,
+            generator="student_sequence"
+    )
+    private Long studentId;
+    private String firstName;
+    private  String lastName;
+    @Column(name="email_address"
+    ,nullable = false
+    )
+    private String emailId;
+    private String guradianName;
+    private String guradianEmail;
+    private String guradianMobie;
+}
+
+
+Run application  and check the tb in databases
+
+
+---------------------------------------------------------------
+Repository
+	create Repository pkg
+	then create one interface of StudentsRepository and extends to JpaRepository 
+
+	and create one Test and can't select anything
+
+then in test Folder create save method and run that method ex...
+
+
+.
+@SpringBootTest
+ class StudentRepositoryTest {
+    @Autowired
+    private StudentRepository studentRepository;
+
+
+    @Test
+    public void saveStudnet(){
+
+        Student student = Student.builder()
+                .emailId("Ram@gmail.com")
+                .firstName("ram")
+                .lastName("Patil")
+                .guradianName("Honika")
+                .guradianEmail("honial@gmail.com")
+                .guradianMobie("985612347")
+                .build();
+        studentRepository.save(student);
+    }
+
+
+}
+
+run this method and check in db 
+
+after that creating another method
+
+   @Test
+    public void printAllStudent(){
+        List<Student> studentList = studentRepository.findAll();
+        System.out.println(studentList);
+    }
+
+---------------------------------------------------------------------------------------------
+@Embedded And Embeddable Mapping a
+
+@Embeddable use for child declaration 
+1 creating one Gardian class 
+
+
+
+@Embeddable
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@AttributeOverrides({
+        @AttributeOverride(
+                name = "name",
+                column = @Column(name = "guradian_name")
+        ),
+        @AttributeOverride(
+                name = "email",
+                column = @Column(name = "guradian_email")
+        ),
+        @AttributeOverride(
+                name = "mobile",
+                column = @Column(name = "guradian_mobile")
+        )
+})
+public class Guradian {
+    private String name;
+    private String email;
+    private String mobile;
+}
+
+
+
+2 remove Guardian field from student  table and only create  Guardian class obj and mention as 
+
+
+
+    @Embedded
+    private  Guradian guradian;
+
+
+
+
+3 after that check the test 
+@Test
+    public void saveStudentWithGuardian()
+    {
+        Guradian guradian = Guradian.builder()
+                .name("Janki")
+                .email("Janki@gmail.com")
+                .mobile("7889455611").build();
+
+
+
+        Student student =Student.builder()
+                .firstName("Sita")
+                .emailId("Sita@gmail.com")
+                .lastName("Ganika")
+                .guradian(guradian)
+                .build();
+        studentRepository.save(student);
+
+    }
+
+
+
+
+----------------------------------------------------------------------------------------------------------------------------
+
+JPA Repository Method
+
+1
+
+@Repository
+public interface StudentRepository extends JpaRepository<Student,Long> {
+
+    public List<Student> findByFirstName(String firstName);
+    public List<Student> findByFirstNameContaining(String name);
+    public List<Student> findByLastNameNotNull();
+
+    public List<Student> findByGuradianName(String name);
+
+    public Student findByFirstNameAndLastName(String firstName,String lastName);
+}
+
+
+
+
+2
+ @SpringBootTest
+ class StudentRepositoryTest {
+    @Autowired
+    private StudentRepository studentRepository;
+
+
+    @Test
+    public void saveStudnet(){
+
+        Student student = Student.builder()
+                .emailId("Ram@gmail.com")
+                .firstName("ram")
+                .lastName("Patil")
+              //  .guradianName("Honika")
+                //.guradianEmail("honial@gmail.com")
+               // .guradianMobie("985612347")
+                .build();
+        studentRepository.save(student);
+    }
+
+    @Test
+    public void saveStudentWithGuardian()
+    {
+        Guradian guradian = Guradian.builder()
+                .name("Janki")
+                .email("Janki@gmail.com")
+                .mobile("7889455611").build();
+
+
+
+        Student student =Student.builder()
+                .firstName("Sita")
+                .emailId("Sita@gmail.com")
+                .lastName("Ganika")
+                .guradian(guradian)
+                .build();
+        studentRepository.save(student);
+
+    }
+
+
+
+    @Test
+    public void printAllStudent(){
+        List<Student> studentList = studentRepository.findAll();
+        System.out.println(studentList);
+    }
+
+
+    @Test
+    public void printStudentByName()
+    {
+        List<Student> students = studentRepository.findByFirstName("Sita");
+        System.out.println(students);
+
+    }
+
+    @Test
+    public void printStudnetfindByFirstNameContaining()
+    {
+        List<Student> students = studentRepository.findByFirstNameContaining("Ra");
+        System.out.println("data Is \n"+ students);
+    }
+
+
+    @Test
+    public  void printStudentfindbyLastNameNotnul()
+    {
+        List<Student> students = studentRepository.findByLastNameNotNull();
+        System.out.println(students);
+    }
+
+    @Test
+    public void printStudentfindByGuradianName()
+    {
+        List<Student> students = studentRepository.findByGuradianName("Janki");
+        System.out.println(students);
+    }
+
+    @Test
+    public void printStudentfindByFirstNameAndLastName()
+    {
+        Student student = studentRepository.findByFirstNameAndLastName("ram","patil");
+        System.out.println(student);
+    }
+}
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------
+5300
+JPA @Query Annonation
+
+
+
+1 In @Repository creating few method 
+
+  //JPQL
+    //Query is based on Class not on table
+    @Query("select s from Student s Where s.emailId=?1")
+    Student getStudentByEmailAddress(String emailId );
+
+    @Query("select s.firstName from Student s Where s.emailId=?1")
+    String getStudentFirstNameByEmailAddress(String emailId );
+
+
+2 And Imp some Method 
+
+
+
+
+    @Test
+    public void printStudentByEmailAddress()
+    {
+        Student student =studentRepository.getStudentByEmailAddress("ram@gmail.com");
+        System.out.println(student);
+    }
+    @Test
+    public void printStudentFirstNameByEmailAddress()
+    {
+        String  student
+                = studentRepository.getStudentFirstNameByEmailAddress("Sita@gmail.com");
+        System.out.println(student);
+    }
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+Native Queries Example 
+if your have complex  query that time we use 
+
+1 Repo 
+
+    //Native Query
+    @Query(
+            value = "select * from  tbl_student s where s.email_address = ?1",
+            nativeQuery = true
+    )
+    Student getStudentByEmailAddressNative(String emailId);
+    
+    
+2 Imp inTest 	
+
+ @Test
+    public void printgetStudentByEmailAddressNative()
+    {
+        Student student = studentRepository.getStudentByEmailAddressNative("sita@gmail.com");
+        System.out.println(student);
+    }
+
+
+//---------------------------------------------------------
+Query Named Params
+
+1 repo 
+
+   @Query(
+            value = "select * from  tbl_student s where s.email_address = ?1",
+            nativeQuery = true
+    )
+    Student getStudentByEmailAddressNativeNamedParam(@Param("emailId") String emailId);
+
+2 Test 
+
+    @Test
+    public void printgetStudentByEmailAddressNativeNamedParam()
+{
+    Student student = studentRepository.getStudentByEmailAddressNativeNamedParam("sita@gmail.com");
+    System.out.println(student);
+}
+
+----------------------------------------------------------------------------------------
+@Transaction And @Modifying  Annotation
+
+(use for update and delete data )
+
+
+1 Repo 
+
+       @Modifying
+    @Transactional
+    @Query(
+            value = "update tbl_student set first_name =?1 where email_address =?2",
+            nativeQuery = true
+    )
+    int updateStudnetNameByEmailId(String firstName,String emailId);
+
+    @Modifying
+    @Transactional
+    @Query(
+            value = "delete from tbl_student  where email_address =?1",
+            nativeQuery = true
+    )
+    int deleteStudnetNameByEmailId(String emailId);
+
+
+2
+
+
+@Test
+    public void  MmodifyupdateStudnetNameByEmailId()
+{
+    studentRepository.updateStudnetNameByEmailId("rama kaka patil ","Ram@gmail.com");
+}
+
+@Test
+    public  void AnydeleteStudnetNameByEmailId()
+{
+    studentRepository.deleteStudnetNameByEmailId("Sita@gmail.com");
+}
+
+
+--------------------------------------------------------------------------------------------------------------------------
+-Relationship
+
+ Jpa 
+**************************
+ One to One Relationship 
+**************************
+Example:
+	1 Course to courseMaterial
+
+	Method 
+	1 Create two entity 
+	
+Course Entity 
+******************************
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Course {
+
+    @Id
+    @SequenceGenerator(
+            name = "course_sequence",
+            sequenceName = "course_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "course_sequence"
+    )
+    private Long courseId;
+    private String title;
+    private Integer credit;
+
+}
+****************************************
+CourseMaterial
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CourseMaterial {
+    @Id
+    @SequenceGenerator(
+            name = "course_material_sequence",
+            sequenceName = "course_material_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "course_material_sequence"
+    )
+    private Long courseMaterialId;
+    private String url;
+
+
+    @OneToOne // bcz wihtout course data ..this entity is nothing
+    @JoinColumn(
+            name = "course_Id",
+            referencedColumnName = "courseId"
+    )
+    private Course course;
+}
+
+********************************************************************************************************
+5:55
+
+Cascading...
+to pass permission(information)  to child 
+
+
+ 1 just add this 
+
+    @OneToOne(
+            cascade = CascadeType.ALL
+    ) // bcz wihtout course data ..this entity is nothing
+    @JoinColumn(
+            name = "course_Id",
+            referencedColumnName = "courseId"
+    )
+    private Course course;
+ 
+-----------------------------------------------------------------------------------------------------------------
+
+Fetch Type : 
+	1 egar (use for one)
+	2 Lazy(use for get all)
+
+Ex 
+1 mention @ToString() annotation to class and also provide fetch = FetchType.LAZY
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@ToString(exclude = "course")
+public class CourseMaterial {
+    @Id
+    @SequenceGenerator(
+            name = "course_material_sequence",
+            sequenceName = "course_material_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "course_material_sequence"
+    )
+    private Long courseMaterialId;
+    private String url;
+
+
+    @OneToOne(
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY
+    ) // bcz wihtout course data ..this entity is nothing
+    @JoinColumn(
+            name = "course_Id",
+            referencedColumnName = "courseId"
+    )
+    private Course course;
+}
+
+
+2 after that creating one method(test directly in repo )
+
+ @Test
+    public void printAllCoursesMaterials()
+    {
+        List<CourseMaterial> courseMaterialList= courseMaterialRepository.findAll();
+        System.out.println(courseMaterialList);
+    }
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+((one to one ))
+If you want to data only created in one table then use @mapped 
+1
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Course {
+
+    @Id
+    @SequenceGenerator(
+            name = "course_sequence",
+            sequenceName = "course_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "course_sequence"
+    )
+    private Long courseId;
+    private String title;
+    private Integer credit;
+
+    @OneToOne(
+            mappedBy = "course" //its name of coursematrial attribute name
+    )
+    private CourseMaterial courseMaterial;
+
+} 
+
+
+2 
+
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@ToString(exclude = "course")
+public class CourseMaterial {
+    @Id
+    @SequenceGenerator(
+            name = "course_material_sequence",
+            sequenceName = "course_material_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "course_material_sequence"
+    )
+    private Long courseMaterialId;
+    private String url;
+
+
+    @OneToOne(
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY
+    ) // bcz wihtout course data ..this entity is nothing
+    @JoinColumn(
+            name = "course_Id",
+            referencedColumnName = "courseId"
+    )
+    private Course course;
+}
+
+
+-----------------------------------------------------------------------------------------------------------------------
+((One to Many )) 
+	Example : one teacher have many course 
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+
+public class Teacher {
+@Id
+@SequenceGenerator(
+        name = "teacher_sequence",
+        sequenceName = "teacher_sequence",
+        allocationSize = 1
+)
+@GeneratedValue(
+        strategy = GenerationType.SEQUENCE,
+        generator = "teacher_sequence"
+)
+    private Long teacherId;
+
+private String firstName;
+private String lastName;
+@OneToMany(
+        cascade = CascadeType.ALL
+)
+@JoinColumn(
+        name="teacherId",
+        referencedColumnName = "teacherId"
+)
+private List<Course> course;
+}
+-------------------------------------------------------------------
+Creating repo of Teacher
+
+
+@SpringBootTest
+class TeacherRepositoryTest {
+
+    @Autowired
+    private TeacherRepository teacherRepository;
+
+    @Test
+    public void saveTeacher()
+    {
+
+        Course courseOs = Course.builder()
+                .title("Os")
+                .credit(5)
+                .build();
+	Course courseSQl = Course.builder()
+                .title("SQl")
+                .credit(525)
+                .build();
+
+        CourseMaterial courseMaterial = CourseMaterial.builder()
+                .course(courseOs)
+                .url("www.os.com")
+                .build();
+
+        Teacher teacher = Teacher.builder()
+                .firstName("Govinda")
+                .lastName("Pawar")
+                .courses(List.of(courseOs,courseSQl))
+                .build();
+        teacherRepository.save(teacher);
+    }
+
+Adding data in 
+
+----
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+Many to one  
+	ex : many course any one teacher 
+	
+
+removing old mapping in Teacher entity --->
+this one must be cmt 
+
+@OneToMany(
+        cascade = CascadeType.ALL
+)
+@JoinColumn(
+        name="teacherId",
+        referencedColumnName = "teacherId"
+)
+private List<Course> courses;
+*/
+
+
+----------------------------------->>
+add in new mapping in Course 
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Course{
+
+    @Id
+    @SequenceGenerator(
+            name = "course_sequence",
+            sequenceName = "course_sequence",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "course_sequence"
+    )
+    private Long courseId;
+    private String title;
+    private Integer credit;
+
+    @OneToOne(
+            mappedBy = "course" //its name of coursematrial attribute name
+    )
+    private CourseMaterial courseMaterial;
+
+    @ManyToOne(
+            cascade = CascadeType.ALL
+    )
+    @JoinColumn(
+            name="teacher_id",
+            referencedColumnName = "teacherId"
+    )
+    private  Teacher teacher;
+
+}
+
+
+----------------------------------------------------------------------------------------------------------------------------
+Paging and Soartig 
+--------------------------
+6:28
+
+
